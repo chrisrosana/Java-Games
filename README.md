@@ -1,6 +1,6 @@
 # csc413-TankGame-Team08
 
-This project is made in IntelliJ IDEA. The version of Java to build this game is 9.0.4
+This project is made in IntelliJ IDEA. The version of Java to build this game is version 10.
 Please feel free read the Documentation.pdf to learn more info.
  
 # Player 1 Controls
@@ -19,10 +19,7 @@ Please feel free read the Documentation.pdf to learn more info.
 
 # How to Run the Game:
 * Clone repo onto Desktop
-* Open IntelliJ and create a new Java Project with existing sources, give it a name and locate the repository for the Project Folder and Source Package Folder
-* Set the working directory to the root of the repo
-* Run the program
+1) Double Clicking the csc413-tankgame-angelomadarang.jar inside jar file
+2) In IntelliJ
+	* Click Projects -> tankGameMaster -> rightclick (TankWorld) -> click(run)
 
-# Sound effects obtained from https://www.zapsplat.com:
-* Game tone, block, negative
-* Game tone, negative buzz

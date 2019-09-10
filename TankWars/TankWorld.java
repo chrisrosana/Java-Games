@@ -1,465 +1,448 @@
-package TankGame;
-
-import TankGame.GameObject.Movable.*;
-import TankGame.GameObject.Unmovable.*;
-
-import java.awt.Dimension;
-import java.awt.event.KeyEvent;
-import java.awt.image.BufferedImage;
-
-import java.io.File;
-import java.io.IOException;
-
-import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+package TankGameMaster;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.*;
+import java.io.*;
+import java.util.ArrayList;
+import javax.swing.*;
 
-import javax.swing.JFrame;
+public class TankWorld extends JApplet implements Runnable{
 
-/**
- *
- * @author monal,motiveg
- */
-public class TankWorld implements Runnable {
-    
-    // Do resource initialization in init() methods further down //
-    
-    // JFrame properties //
-    private String frame_title;
-    private int frame_width, frame_height;
-    private int map_width, map_height;
-    
-    // Resource paths //
-    private String background_path;
-    private String wall_path;
-    private String breakablewall_path;
-    private String health_path;
-    private String life_path;
-    private String lifeIcon1_path;
-    private String lifeIcon2_path;
-    private String tank1_path, tank2_path;
-    private String projectile_path;
-    private String img_paths[];
-    private String music_path;
-    private String sound_paths[];
-    
-    // Map properties //
-    private final int NUM_ROWS = 25, NUM_COLS = 25;
-    private int[][] mapLayout;
-    
-    // Swing parts //
-    private Scene scene;
-    
-    // Observable //
-    private final GameObservable gobs;
-    
-    // Active fields //
     private Thread thread;
-    private boolean running = false;
-    
-    // Game objects //
-    private ArrayList<Wall> walls;
-    private ArrayList<BreakableWall> bwalls;
-    private ArrayList<PowerUp> pups;
-    private ArrayList<Projectile> bullets;
-    
-    // Player stuff //
-    private static Tank tank1;
-    private static Tank tank2;
-    private KeyInput keyinput1;
-    private KeyInput keyinput2;
+    static Image background, tank1, tank2, lifesLeft;
+    static Image unBreakWall, breakWall, smallBullet, bigBullet; //refresh images
+    static Image health, power; //Power Ups
+    static Image win;   //end
+    static Image minimap; //smallmap
 
-    // Sound player //
-    private GameSounds music;
-    private ArrayList<GameSounds> soundplayer;
-    
-    // Game window //
-    private JFrame frame;
-    
-    public static void main(String args[]) {
-        TankWorld tankworld = new TankWorld();
-        tankworld.start();
-    }
-    
-    public TankWorld() {
-        this.gobs = new GameObservable();
-    }
-    
-    @Override
-    public void run() {
-        init();
-        try {
-        while(running) {
-            this.gobs.setChanged();
-            this.gobs.notifyObservers();
-            tick();
-            render();
-            
-            Thread.sleep(1000/144);
+    //image arrays
+    static Image[] life = new Image[4];
+    static Image[] explosion = new Image[7];
+    static Image[] wallExplosion = new Image[6];
+    private BufferedImage bimg, windowS, p1Windows, p2Window;
+    Graphics2D g2;
+
+    int GameSize = 1535, GameHeight = 1408;  //boundary of GameSize
+    int p1X, p1Y;   //player 1 window
+    int p2X, p2Y;   //player 2 window
+    int time = 1;
+    static Tank player1, player2;
+
+    public InputStream LoadMap ;
+    private Dimension miniImage;
+    int w = 1300, h = 800; // Fixed Size window
+    GameEvents gameEvent;
+    static final TankWorld TANK_WORLD = new TankWorld();
+
+    //Array
+    public ArrayList<Wall> wall = new ArrayList<Wall>(), wallBreak = new ArrayList<Wall>();
+    public ArrayList<bulletShot> bullet = new ArrayList<bulletShot>();
+    public ArrayList<Explode> explosions = new ArrayList<Explode>();
+    public ArrayList<powerUp> powerUp = new ArrayList<powerUp>();
+
+
+    public void init()
+    {
+        setFocusable(true);
+
+        //load map
+        LoadMap = this.getClass().getClassLoader().getResourceAsStream("TankGameMaster/Resources/map.txt");
+        try{
+
+            //set the background Image of game
+            background = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\Background.png"));
+
+            //tank image
+            tank1 = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\tank1.png"));
+            tank2 = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\tank1.png"));
+
+            //walls
+            unBreakWall = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\redWall1.gif"));
+            breakWall = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\redWall2.gif"));
+
+            //bullet image
+            smallBullet = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\bulletTest.png"));
+            bigBullet = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\bigWeapon.png"));
+
+            //Power Up image
+            health = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\icon.png"));
+            lifesLeft = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\lifesLeft.png"));
+            power = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\Bouncing.png"));
+
+            //get Explosion image array
+            explosion[0] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode1.png"));
+            explosion[1] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode2.png"));
+            explosion[2] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode3.png"));
+            explosion[3] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode4.png"));
+            explosion[4] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode5.png"));
+            explosion[5] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode6.png"));
+            explosion[6] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode6.png"));
+
+            //get Health image array
+            life[3] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\life1.png"));
+            life[2] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\life2.png"));
+            life[1] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\life3.png"));
+            life[0] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\life4.png"));
+
+            //get wallExplosion image array
+            wallExplosion[0] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode1.png"));
+            wallExplosion[1] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode2.png"));
+            wallExplosion[2] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode3.png"));
+            wallExplosion[3] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode4.png"));
+            wallExplosion[4] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode5.png"));
+            wallExplosion[5] = ImageIO.read(new File("C:\\Users\\TEMP\\Desktop\\csc413-tankgame-angelomadarang\\TankGameMaster\\Resources\\explode6.png"));
+
+            if(player1 == null)
+                System.out.println("Player 1 is Ready!");
+            if(player2 == null)
+                System.out.println("Player 2 is Ready!");
+
+        //keyboard controls(left,Right,Forward,Backward,Shoot) and speed of tank
+        player1 = new Tank(tank1, 95, 64, 5, KeyEvent.VK_A, KeyEvent.VK_D, KeyEvent.VK_W,KeyEvent.VK_S, KeyEvent.VK_SPACE);
+        player2 = new Tank(tank2, 1250, 1300, 5, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_UP,KeyEvent.VK_DOWN, KeyEvent.VK_ENTER);
+        gameEvent = new GameEvents();
+
+        gameEvent.addObserver(player1);
+        gameEvent.addObserver(player2);
+
+        KeyControl key = new KeyControl();
+        SoundPlayer.SoundPlayer( true, "TankGameMaster/Resources/recess intro 2.wav.wav");
+
+        addKeyListener(key);
+        MapLayout(); //load
+
         }
-        } catch (InterruptedException e) {
-            Logger.getLogger(TankWorld.class.getName()).log(Level.SEVERE, null, e);
+        catch(Exception e)
+        {
+            System.out.print(e.getStackTrace() +"No resources are found");
         }
-        
-        stop();
     }
-    
-    private void tick() {
-        System.out.print("Tank 1 --------\t");
-        tank1.printTankData();
-        System.out.print("Tank 2 --------\t");
-        tank2.printTankData();
-        
-        this.scene.setProjectiles(bullets);
-        System.out.println(bullets.size()+" bullets");
+
+    //game instance for call/getter
+    public static TankWorld getTankWorld()
+    {
+        return TANK_WORLD;
     }
-    
-    private void render() {
-        this.scene.repaint();
+
+    //return image of Small starting bullet
+    public Image getSmallBullet()
+    {
+        return smallBullet;
     }
-    
-    public synchronized void start() {
-        if (running)
-            return;
-        running = true;
+    //return image of upgraded bullet
+    public Image getBigBullet()
+    {
+        return bigBullet;
+    }
+    //return image explosions array
+    public Image[] getExplosions()
+    {
+        return explosion;
+    }
+    public Image[] getWallImageEx()
+    {
+        return wallExplosion;
+    }
+
+    //wall Array
+    public ArrayList<Wall> getWall()
+    {
+        return wall;
+    }
+    //bullet Array
+    public ArrayList<bulletShot> getBullet()
+    {
+        return bullet;
+    }
+    //explosion Array
+    public ArrayList<Explode> getExplosion()
+    {
+        return explosions;
+    }
+
+    public void TileSize()
+    {
+        int TileW = background.getWidth(this);
+        int TileH = background.getHeight(this);
+
+        for (int i = -1; i <= 9; i++)
+        {
+            for (int j = 0; j <= 9; j++)
+            {
+                g2.drawImage(background, j * TileW,
+                        i * TileH + (0 % TileH), TileW,
+                        TileH, this);
+            }
+        }
+    }
+
+    public void drawDemo()
+    {
+        //Tile first
+        TileSize();
+
+        player1.draw(this, g2);
+        player2.draw(this, g2);
+
+        //update movement
+        player1.MoveTank();
+        player2.MoveTank();
+
+        //draw the walls
+        if (!wall.isEmpty())
+        {
+            //loop over size to draw
+            for (int i = 0; i <= wall.size() - 1; i++)
+            {
+                wall.get(i).draw(this, g2);
+            }
+        }
+
+        //draw explosions
+        if (!explosions.isEmpty())
+        {
+            for (int i = 0; i <= explosions.size() - 1; i++)
+            {
+                if (explosions.get(i).boom())
+                {
+                    explosions.remove(i--);
+                }
+                else
+                    {
+                        explosions.get(i).draw(this, g2);
+                    }
+            }
+        }
+
+        //draw bullet
+        if (!bullet.isEmpty())
+        {
+            for (int i = 0; i <= bullet.size() - 1; i++)
+            {
+                bullet.get(i).draw(this, g2);
+                if (!bullet.get(i).flashing())
+                {
+                    bullet.remove(i);
+                    i--;
+                }
+            }
+        }
+
+        //draw powerUp
+        if (!powerUp.isEmpty())
+        {
+            for (int i = 0; i <= powerUp.size() - 1; i++)
+            {
+                //print only 1 at a time
+                if (!powerUp.get(i).isShow())
+                {
+                    powerUp.remove(i--);
+                }
+                else
+                {
+                    powerUp.get(i).update();
+                    powerUp.get(i).draw(this, g2);
+                }
+            }
+        }
+
+        //power up respond time
+        if (time % 600 == 0)
+        {
+            //location of power up
+            powerUp.add(new HealthUp(health, 355, 125, 0));
+            powerUp.add(new bulletUp(power, 1152, 140, 0));
+            powerUp.add(new bulletUp(power, 355, 1250, 0));
+            powerUp.add(new HealthUp(health, 1152, 1250, 0));
+        }
+
+        //scale the minimap priority
+        minimap = bimg.getScaledInstance(300, 300, Image.SCALE_FAST);
+
+        //window
+        windowS = (BufferedImage) createImage(miniImage.width, miniImage.height);
+        g2 = windowS.createGraphics();
+
+        PLayerWindow(); //print player window
+        p1Windows = bimg.getSubimage(p1X, p1Y, miniImage.width / 2,
+                miniImage.height);
+        p2Window = bimg.getSubimage(p2X, p2Y, miniImage.width / 2,
+                miniImage.height);
+
+        g2.drawImage(p1Windows, 0, 0, this);
+        g2.drawImage(p2Window, miniImage.width / 2, 0, this);
+
+
+        //print out lifes left player 1
+        if (player1.currentLife() != 0) {
+            for (int i = 0; i < player1.currentLife(); i++)
+            {
+                g2.drawImage(lifesLeft, i * 32, miniImage.height - 20, this);
+            }
+            if (player1.getHealth() != 0)
+            {
+                g2.drawImage(life[player1.getHealth() - 1], 0,
+                        miniImage.height - 10, this);
+            }
+        }
+
+
+        //print out lifes left player 2
+        if (player2.currentLife() != 0) {
+            for (int i = 0; i < player2.currentLife(); i++)
+            {
+                g2.drawImage(lifesLeft, miniImage.width - (7 * lifesLeft.getWidth(null))
+                                + ((i * health.getWidth(null))), miniImage.height - 20,
+                        this);
+            }
+            if (player2.getHealth() != 0) {
+                g2.drawImage(life[player2.getHealth() - 1],
+                        miniImage.width - 120, miniImage.height - 10, this);
+            }
+        }
+
+        //draw minimap
+        g2.drawImage(minimap, miniImage.width / 2 - 100, 0, 200, 200, this);
+
+        time++; //update increasing
+    }
+
+
+    public void paint(Graphics g)
+    {
+        bimg = (BufferedImage) createImage(GameSize,
+                GameHeight);
+
+        g2 = bimg.createGraphics();
+
+        drawDemo();
+        g.drawImage(windowS, 0, 0, this);
+    }
+
+    public void start()
+    {
+        System.out.println();
         thread = new Thread(this);
+        thread.setPriority(Thread.MIN_PRIORITY);
         thread.start();
     }
-    
-    public synchronized void stop() {
-        if (!running)
-            return;
-        running = false;
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    private void init() {
-        // initialize resources and world properties
-        initWorldProperties();
-        initResourcePaths();
-        
-        // initialize scene things here
-        this.scene = new Scene(map_width, map_height, frame_width, frame_height,
-                                background_path, img_paths);
-        setupMap();
-        setupPlayers();
-        setupSounds();
 
-        // initialize game frame
-        setupFrame();
-    }
-    
-    private void initWorldProperties() {
-        this.frame_title = "Tank Game";
-        this.frame_width = 800;
-        this.frame_height = 822;
-        this.map_width = 1600;
-        this.map_height = 1600;
-    }
-    
-    private void initResourcePaths() {
-        // IMAGES
-        background_path = "Resources/Background.bmp";
-        wall_path = "Resources/Wall1.gif";
-        breakablewall_path = "Resources/Wall2.gif";
-        health_path = "Resources/Health_nontransparent.png";
-        life_path = "Resources/Life.gif";
-        lifeIcon1_path = "Resources/Life2_p1.gif";
-        lifeIcon2_path = "Resources/Life2_p2.gif";
-        tank1_path = "Resources/Tank1edit.gif";
-        tank2_path = "Resources/Tank2edit.gif";
-        projectile_path = "Resources/Shelledit2.gif";
-        // 0: empty, 1: empty, 2: wall, 3: breakable wall, 4: health, 5: life, 6: projectile
-        img_paths = new String[] {tank1_path, tank2_path, wall_path, breakablewall_path, health_path, life_path, projectile_path};
-        
-        // SOUNDS
-        music_path = "Resources/Music.wav";
-        sound_paths = new String[] {"Resources/Explosion_small.wav", "Resources/Explosion_large.wav", "Resources/unbreakable.wav", "Resources/breakable.wav"};
-    }
 
-    public void setupMap() {
-        setMapLayout();
-        createMapObjects();
-    }
-    
-    // 0 = empty, 1 = ?, 2 = wall, 3 = breakable wall, 4 = health, 5 = life
-    private void setMapLayout() {
-        this.mapLayout = new int[][]
-        { // current size: 25x25
-            {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, // 0
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 1
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 2
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 3
-            {2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2}, // 4
-            {2, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 2}, // 5
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 6
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 7
-            {2, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2}, // 8
-            {2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2}, // 9
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 10
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 11
-            {2, 2, 2, 2, 2, 0, 0, 0, 2, 2, 3, 3, 4, 3, 3, 2, 2, 0, 0, 0, 2, 2, 2, 2, 2}, // 12
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 13
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 14
-            {2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2}, // 15
-            {2, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 2}, // 16
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 17
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 18
-            {2, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 2}, // 19
-            {2, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 2}, // 20
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 21
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 22
-            {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}, // 23
-            {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2}, // 24
-        };
-    }
-    
-    private void createMapObjects() {
-        walls = new ArrayList<>();
-        bwalls = new ArrayList<>();
-        pups  = new ArrayList<>();
-        BufferedImage objectImage;
-        int cell_size = 64;
-        int extra = 32;
-        for (int row = 0; row < NUM_ROWS; row++) {
-            for (int col = 0; col < NUM_COLS; col++) {
-                // Wall
-                if (this.mapLayout[row][col] == 2) {
-                    objectImage = setImage(img_paths[2]);
-                    walls.add(new Wall(col*cell_size, row*cell_size,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                    walls.add(new Wall((col*cell_size)+extra, row*cell_size,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                    walls.add(new Wall(col*cell_size, (row*cell_size)+extra,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                    walls.add(new Wall((col*cell_size)+extra, (row*cell_size)+extra,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                }
-                // Breakable Wall
-                if (this.mapLayout[row][col] == 3) {
-                    objectImage = setImage(img_paths[3]);
-                    bwalls.add(new BreakableWall(col*cell_size, row*cell_size,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                    bwalls.add(new BreakableWall((col*cell_size)+extra, row*cell_size,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                    bwalls.add(new BreakableWall(col*cell_size, (row*cell_size)+extra,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                    bwalls.add(new BreakableWall((col*cell_size)+extra, (row*cell_size)+extra,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                }
-                // Health
-                // TODO: this is currently a generic powerup
-                // NOTE: current setup only has one powerup in the center;
-                //       change this function if the map layout is changed
-                if (this.mapLayout[row][col] == 4) {
-                    objectImage = setImage(img_paths[4]);
-                    //pups.add(new PowerUp(col*cell_size, row*cell_size,
-                    //        objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                    // this is the temporary set up; remove this if a new layout is used
-                        pups.add(new PowerUp((col*cell_size)+(extra/2), (row*cell_size)+(extra/2),
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                }
-                // Life
-                /*
-                if (this.mapLayout[row][col] == 5) {
-                    objectImage = setImage(img_paths[5]);
-                    pups.add(new PowerUp(col*cell_size, row*cell_size,
-                            objectImage.getWidth(), objectImage.getHeight(), objectImage));
-                }
-                */
+    public void run()
+    {
+        Thread me = Thread.currentThread();
+        while (thread == me) {
+            repaint();
+            try {
+                thread.sleep(25);
+            } catch (InterruptedException e) {
+                break;
             }
-        } // end loops
-        
-        // add each object to the Observable
-        walls.forEach((curr) -> {
-            this.gobs.addObserver(curr);
-        });
-        bwalls.forEach((curr) -> {
-            this.gobs.addObserver(curr);
-        });
-        pups.forEach((curr) -> {
-            this.gobs.addObserver(curr);
-        });
-        
-        // add each object to the Scene
-        this.scene.setMapObjects(this.walls, this.bwalls, this.pups);
-    }
-    
-    private void setupPlayers() {
-        BufferedImage t1img = setImage(img_paths[0]);
-        BufferedImage t2img = setImage(img_paths[1]);
-        
-        int tank1_x = 100,
-            tank1_y = 100,
-            tank2_x = 1500,
-            tank2_y = 1500,
-            tank2_angle = 180, // face tank2 inwards
-            tank_speed = 2;
-        
-        tank1 = new Tank(this, t1img, tank1_x, tank1_y, tank_speed,
-                KeyEvent.VK_A, KeyEvent.VK_D,
-                KeyEvent.VK_W, KeyEvent.VK_S, KeyEvent.VK_SPACE);
-        
-        tank2 = new Tank(this, t2img, tank2_x, tank2_y, tank_speed,
-                KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT,
-                KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_ENTER);
-        tank2.setAngle(tank2_angle); // face tank2 inwards
-        
-        // other tank has to be set after instantions
-        tank1.setOtherTank(tank2);
-        tank2.setOtherTank(tank1);
-        
-        // connect key inputs with tanks
-        this.keyinput1 = new KeyInput(tank1);
-        this.keyinput2 = new KeyInput(tank2);
-        
-        // add tanks to observer list
-        gobs.addObserver(tank1);
-        gobs.addObserver(tank2);
-        
-        this.scene.setTanks(tank1, tank2);
-        
-        // instantiate bullets list
-        this.bullets = new ArrayList<>();
-        
-        // set life icons
-        this.scene.setLifeIcons(setImage(this.lifeIcon1_path), setImage(this.lifeIcon2_path));
-    }
-    
-    private void setupSounds() {
-        // music; for looped sound, it will play once instantiated 
-        this.music = new GameSounds(1, this.music_path);
-        
-        // game sounds
-        GameSounds small_explosion = new GameSounds(2, this.sound_paths[0]);
-        GameSounds large_explosion = new GameSounds(2, this.sound_paths[1]);
-        GameSounds unbreakable_hit = new GameSounds(2, this.sound_paths[2]);
-        GameSounds breakable_hit = new GameSounds(2, this.sound_paths[3]);
-        this.soundplayer = new ArrayList<>();
-        this.soundplayer.add(small_explosion); // 0
-        this.soundplayer.add(large_explosion); // 1
-        this.soundplayer.add(unbreakable_hit); // 2
-        this.soundplayer.add(breakable_hit); // 3
-    }
-
-    private void setupFrame() {
-        frame = new JFrame();
-        
-        // GAME WINDOW
-        this.frame.setTitle(frame_title);
-        this.frame.setSize(frame_width, frame_height);
-        this.frame.setPreferredSize(new Dimension(frame_width, frame_height));
-        this.frame.setResizable(false);
-        this.frame.setLocationRelativeTo(null);
-        this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.frame.add(this.scene);
-        this.frame.setLocationRelativeTo(null);
-        
-        this.frame.addKeyListener(keyinput1);
-        this.frame.addKeyListener(keyinput2);
-        
-        // finalize the frame
-        this.frame.pack();
-        this.frame.setVisible(true);
-    }
-    
-    public void addBulletToObservable(Projectile p) {
-        this.gobs.addObserver(p);
-    }
-
-    // SETTERS //
-    private BufferedImage setImage(String filepath) {
-        BufferedImage img = null;
-        try {
-            img = ImageIO.read(new File(filepath));
-        } catch (IOException e) {
-            System.out.println("Error getting image. " + e.getMessage());
-        }
-        return img;
-    }
-    
-    // GETTERS //
-    public TankWorld getTankWorld() {
-        return this;
-    }
-    
-    public static Tank getTank(int tankNumber) {
-        switch (tankNumber) {
-            case 1:
-                return tank1;
-            case 2:
-                return tank2;
-            default:
-                System.out.println("Tank not found!");
-                return null;
         }
     }
-    
-    public static ArrayList<Tank> getTanks() {
-        ArrayList<Tank> tanks = new ArrayList<>();
-        tanks.add(tank1);
-        tanks.add(tank2);
-        return tanks;
-    }
-    
-    public ArrayList<Wall> getWalls() {
-        return this.walls;
-    }
-    
-    public int getWallSize(){
-        return walls.size();
-    }
-    
-    public ArrayList<BreakableWall> getBreakableWalls() {
-        return this.bwalls;
-    }
-    
-    public int getBreakableWallSize() {
-        return bwalls.size();
-    }
-    
-    public ArrayList<PowerUp> getPowerUps() {
-        return this.pups;
+
+
+
+    //create the mapLayout
+    public void MapLayout()
+    {
+        BufferedReader temp = new BufferedReader(new InputStreamReader(LoadMap));
+        String location;
+        int count = 0;
+        try{
+            while((location = temp.readLine()) != null)
+            {
+                //print walls 1 = unBreakWall, 2 = breakWall
+                for(int i = 0; i < location.length(); i++)
+                {
+                    if(location.charAt(i) == '1')
+                    {
+                        wall.add(new Wall(unBreakWall, (count % 48) * 32, count/ 48 * 32, false));
+                    }
+                    else if(location.charAt(i) == '2')
+                    {
+                        wall.add(new Wall(breakWall, (count % 48) * 32, count/ 48 * 32, true));
+                    }
+                    count++;
+                }
+            }
+        }catch(Exception e){
+            System.out.print(e.getStackTrace() +"Map Error");
+        }
     }
 
-    public ArrayList<Projectile> getProjectile() {
-        return bullets;
+
+    //window screen for players
+    public void PLayerWindow()
+    {
+        //player1X
+        if((p1X= (player1.CenterX()-(miniImage.width/4))) < 0)
+        {
+            p1X = 0;
+        }
+        else if(p1X>=GameSize-(miniImage.width/2))
+        {
+            p1X = GameSize-(miniImage.width/2);
+        }
+        //PLayer1Y
+        if((p1Y = (player1.CenterY()-(miniImage.height/2))) < 0)
+        {
+            p1Y = 0;
+        }
+        else if(p1Y>=(GameHeight-(miniImage.height)))
+        {
+            p1Y = GameHeight-(miniImage.height);
+        }
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        //player2X
+        if((p2X= (player2.CenterX()-(miniImage.width/4))) < 0)
+        {
+            p2X = 0;
+        }else if(p2X>=GameSize-(miniImage.width/2))
+        {
+            p2X = GameSize-(miniImage.width/2);
+        }
+        //player2Y
+        if((p2Y = (player2.CenterY()-(miniImage.height/2))) < 0)
+        {
+            p2Y = 0;
+        }
+        else if(p2Y>=(GameHeight-(miniImage.height)))
+        {
+            p2Y = GameHeight-(miniImage.height);
+        }
     }
-    
-    public BufferedImage getProjectileImg(){
-        BufferedImage projectile = setImage(img_paths[6]);
-        return projectile;
+
+    // keyboard layout
+    public class KeyControl extends KeyAdapter
+    {
+        public void keyReleased(KeyEvent e)
+        {
+            gameEvent.setValue(e);
+        }
+        public void keyPressed(KeyEvent e)
+        {
+            gameEvent.setValue(e);
+        }
     }
-    
-    public int getWindowWidth () {
-        return this.frame_width;
+
+    public static void main(String argv[])
+    {
+        TANK_WORLD.init(); //run
+
+        JFrame f = new JFrame("TankGame");
+        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        f.addWindowListener(new WindowAdapter() {
+        });
+        f.getContentPane().add("Center", TANK_WORLD);
+        f.pack();
+        f.setSize(new Dimension(TANK_WORLD.w, TANK_WORLD.h));
+        f.setVisible(true);
+        f.setResizable(false);
+        TANK_WORLD.miniImage = f.getContentPane().getSize();
+        TANK_WORLD.start();
     }
-    
-    public int getWindowHeight() {
-        return this.frame_height;
-    }
-    
-    public int getMapWidth() {
-        return this.map_width;
-    }
-    
-    public int getMapHeight() {
-        return this.map_height;
-    }
-    
-    public GameSounds getSound(int sound_number) {
-        return this.soundplayer.get(sound_number);
-    }
-    
-    public void playSound(int sound_number) {
-        if (sound_number >= 0 && sound_number <= 3)
-            this.soundplayer.get(sound_number).play();
-    }
-    
+
 }
