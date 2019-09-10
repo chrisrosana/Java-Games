@@ -1,16 +1,28 @@
-# Tanks Movement
+# csc413-TankGame-Team08
 
-This only shows the movements of each tanks by the players control.
+This project is made in IntelliJ IDEA. The version of Java to build this game is 9.0.4
+Please feel free read the Documentation.pdf to learn more info.
+ 
+# Player 1 Controls
+* W -> move up
+* A -> rotate left
+* S -> move down
+* D -> rotate right
+* SPACE BAR -> shoot
 
-This project is made in IntelliJ IDEA. The version of Java to build this game is 1.8.
+# Player 2 Controls
+* UP Arrow Key -> move up
+* LEFT Arrow Key -> rotate left
+* DOWN Arrow Key -> move down
+* RIGHT Arrow Key -> rotate right
+* ENTER -> shoot
 
-Please read the Documentation.pdf to learn how to open and run the file.
+# How to Run the Game:
+* Clone repo onto Desktop
+* Open IntelliJ and create a new Java Project with existing sources, give it a name and locate the repository for the Project Folder and Source Package Folder
+* Set the working directory to the root of the repo
+* Run the program
 
-Player 1 controls are: 
-
-A key(left), W key(forward), D key(right), S key(back), and SPACE BAR(shoot). 
-
-Player 2 controls are: 
-
-LEFT arrow key(left), UP arrow key(forward), RIGHT arrow key(right), DOWN arrow key(back), and ENTER(shoot). 
-
+# Sound effects obtained from https://www.zapsplat.com:
+* Game tone, block, negative
+* Game tone, negative buzz
