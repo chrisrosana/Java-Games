@@ -1,4 +1,4 @@
-# csc413-TankGame-Team08
+# Tank Wars
 
 This project is made in IntelliJ IDEA. The version of Java to build this game is version 10.
 Please feel free read the Documentation.pdf to learn more info.
