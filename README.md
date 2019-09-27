@@ -19,7 +19,7 @@ Please feel free read the Documentation.pdf to learn more info.
 
 # How to Run the Game:
 * Clone repo onto Desktop
-1) Double Clicking the csc413-tankgame-angelomadarang.jar inside jar file
+1) Double Clicking the csc413-tankgame.jar inside jar file
 2) In IntelliJ
 	* Click Projects -> tankGameMaster -> rightclick (TankWorld) -> click(run)
 
