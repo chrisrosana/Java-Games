@@ -1,3 +1,5 @@
+![alt text](https://raw.githubusercontent.com/chrisrosana/Tanks-wars/master/Screen%20Shot%202019-09-13%20at%202.12.58%20PM.png)
+
 # Tank Wars
 
 This project is made in IntelliJ IDEA. The version of Java to build this game is version 10.
